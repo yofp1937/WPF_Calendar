@@ -64,7 +64,7 @@ namespace Calendar.Common.Controller
             });
             contextMenu.Items.Add("프로그램 종료", null, (s, e) =>
             {
-                Application.Current.Shutdown();
+                WindowService.Instance.ShutDown();
             });
             _notifyIcon.ContextMenuStrip = contextMenu;
         }
@@ -80,6 +80,8 @@ namespace Calendar.Common.Controller
         public void Dispose()
         {
             _notifyIcon.Visible = false;
+            if(_notifyIcon.ContextMenuStrip != null)
+                _notifyIcon.ContextMenuStrip.Dispose();
             _notifyIcon.Dispose();
         }
         #endregion

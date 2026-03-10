@@ -66,7 +66,8 @@ namespace Calendar.Model.DataClass.TodoEntities
         }
 
         /// <summary>
-        /// targetDate가 현재 Routine에 포함되는지 검사
+        /// targetDate가 현재 Routine에 포함되는지 검사<br/>
+        /// 포함되면 true, 포함 안되면 false
         /// </summary>
         public bool IsCheckInDay(DateTime targetDate)
         {

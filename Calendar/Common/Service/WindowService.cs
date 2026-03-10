@@ -74,6 +74,7 @@ namespace Calendar.Common.Service
                 window.Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(() =>
                 {
                     window.ShowInTaskbar = false;
+                    window.Hide();
                     ReleaseProcessing();
                 }));
             }
@@ -218,6 +219,7 @@ namespace Calendar.Common.Service
             }
 
             // 작업 표시줄에 띄우기
+            window.Show();
             window.ShowInTaskbar = true;
             // 스타일 적용이 끝나면 내부 코드 실행
             window.Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(() =>
@@ -234,6 +236,10 @@ namespace Calendar.Common.Service
         /// </summary>
         public void ShutDown()
         {
+            foreach (Window window in Application.Current.Windows.Cast<Window>().ToList())
+            {
+                window.Close();
+            }
             Application.Current.Shutdown();
         }
         #endregion
@@ -291,6 +297,10 @@ namespace Calendar.Common.Service
             else if (obj is RoutineRecord routineRecord)
             {
                 editVM = new EditTodoViewModel(todoRepository, routineRecord);
+            }
+            else if (obj is RoutineInstance routineInstance)
+            {
+                editVM = new EditTodoViewModel(todoRepository, routineInstance);
             }
 
             return editVM != null ? ShowDialog(editVM) : false;

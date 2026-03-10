@@ -201,7 +201,6 @@ namespace Calendar.ViewModel.TodoWindow
             // 루틴 아니면 retrun
             if (!IsRoutine) return;
 
-            // 공통 처리 로직
             DateTime today = DateTime.Today;
 
             // 1.RoutineData를 수정하는가?
@@ -232,9 +231,14 @@ namespace Calendar.ViewModel.TodoWindow
         private void UpdateFutureRoutine()
         {
             if (_routineData == null) return;
-            // 만약 EndDate가 바뀌었으면? 오늘 이후의 날짜들 RoutineRecord는 다 정리해줘야할듯
-            ApplyRoutineData(_routineData);
-            _ = TodoRepository.AddOrUpdateData_AsyncSave(_routineData);
+
+            // 시작 날짜를 오늘로 설정하여 새로운 루틴을 생성
+            RoutineData newData = ApplyRoutineData(new());
+            newData.StartDate = DateTime.Today;
+            GeneratePastRecords(newData);
+
+            // 기존 루틴 제거
+            _ = TodoRepository.ReplaceRoutineData(_routineData, newData);
         }
 
         /// <summary>
@@ -268,8 +272,12 @@ namespace Calendar.ViewModel.TodoWindow
             // 2. 그외 주요 데이터를 수정했을 경우 RoutineData를 수정
             else
             {
-                _routineData = ApplyRoutineData(_routineData);
-                _ = TodoRepository.AddOrUpdateData_AsyncSave(_routineData);
+                RoutineData newData = ApplyRoutineData(new());
+                newData.StartDate = DateTime.Today;
+                GeneratePastRecords(newData);
+
+                // 기존 루틴 제거
+                _ = TodoRepository.ReplaceRoutineData(_routineData, newData);
             }
         }
         #endregion

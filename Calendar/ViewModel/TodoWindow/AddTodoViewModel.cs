@@ -31,6 +31,7 @@ namespace Calendar.ViewModel.TodoWindow
             if (IsRoutine)
             {
                 RoutineData routineData = ApplyRoutineData(new RoutineData());
+                GeneratePastRecords(routineData);
                 // AddRoutine_AsyncSave는 Task(작업 결과)를 반환하는 메서드이다
                 // Task(작업 결과)를 반환하는 메서드는 메서드 앞에 await을 붙여 결과를 기다려야하는데
                 // 프로그램에서는 백그라운드 저장을 명령하고 즉시 창을 닫아야하므로 await을 사용하지 않아야한다

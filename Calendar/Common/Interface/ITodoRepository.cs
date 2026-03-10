@@ -19,9 +19,9 @@ namespace Calendar.Common.Interface
         Task<bool> DeleteData_AsyncSave<T>(T data) where T : class;
 
         /// <summary>
-        /// routineData에 변경이 생겼을때 Status값이 Waiting인(저장소에 저장된 미래 Record) Record 전부 삭제
+        /// 기존 RoutineData는 제거하고, 새로운 RoutineData를 추가하는 메서드
         /// </summary>
-        void DeleteGarbageRecordsInStorage(RoutineData routineData);
+        Task<bool> ReplaceRoutineData(RoutineData existingData, RoutineData newData);
 
         /// <summary>
         /// 현재 저장소를 보여줌

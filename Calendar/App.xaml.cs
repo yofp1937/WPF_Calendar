@@ -67,9 +67,15 @@ namespace TODO_List
         /// </summary>
         protected override void OnExit(ExitEventArgs e)
         {
-            _trayIconController?.Dispose();
-            WaitingForSavingData();
-            base.OnExit(e);
+            try
+            {
+                _trayIconController?.Dispose();
+                WaitingForSavingData();
+            }
+            finally
+            {
+                base.OnExit(e);
+            }
         }
 
         /// <summary>

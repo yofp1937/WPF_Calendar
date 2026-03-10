@@ -65,9 +65,17 @@ namespace Calendar.Manager
             return false;
         }
 
-        public void DeleteGarbageRecordsInStorage(RoutineData routineData)
+        public async Task<bool> ReplaceRoutineData(RoutineData existingData, RoutineData newData)
         {
-            ClearGarbageRecords(routineData);
+            try
+            {
+                await DeleteAndAdd_AsyncSave(existingData, newData);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public TodoStorage GetTodoStorage()
@@ -82,8 +90,11 @@ namespace Calendar.Manager
 
         public void WaitingForSavingData()
         {
-            SaveTodoDataAsync().GetAwaiter().GetResult();
-            SaveSettingsDataAsync().GetAwaiter().GetResult();
+            Task.Run(async () =>
+            {
+                await SaveTodoDataAsync();
+                await SaveSettingsDataAsync();
+            }).GetAwaiter().GetResult();
         }
 
         public AppSettings GetSettings()
@@ -372,6 +383,19 @@ namespace Calendar.Manager
             }
         }
         #endregion
+        /// <summary>
+        /// RoutineData 저장소에서 data1은 제거, data2는 추가하는 메서드
+        /// </summary>
+        private async Task DeleteAndAdd_AsyncSave(RoutineData data1, RoutineData data2)
+        {
+            bool result = _currentStorage.Routines.Remove(data1);
+
+            if (result)
+            {
+                _currentStorage.Routines.Add(data2);
+                await SaveTodoDataAsync();
+            }
+        }
         #endregion
     }
 }

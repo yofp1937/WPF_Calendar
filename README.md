@@ -1,89 +1,109 @@
 # WPF_Calendar
 일정, 루틴 데이터를 입력하면 달력 UI를 통해 매일, 매주, 매달 해야 할 일을 간단하게 확인하고 완료 여부를 관리할 수 있는 프로그램
 
+
 # 개발 기간
 - 2025.12.01 ~ 26.03.07 (ver 1.0 - 기본 기능 구현 완료)
 
+
 # 사용 기술
-C#, WPF, MVVM 패턴, JSON Serialization
+C#, WPF, MVVM, JSON Serialization
 
-# 신경쓰며 만든 것
- 1. MVVM 패턴 구현 (Model과 View 사이의 상호 의존성을 최소화, ViewModel을 통해 Data Binding, Command를 사용하여 효율적으로 데이터를 처리)
-  - ViewModel에서 Window(View)를 생성하는건 MVVM에 위배되므로 Messenger를 통해 WindowService의 기능을 호출
- 2. 사용자 UI, 편의성
-  - 프로그램 전체화면으로 변경할때 작업 표시줄은 나타나게 창 크기 조절
-  - 최소화시 SystemTray로 이동시키는 기능 구현
-  - OS 부팅시 프로그램 자동 실행 할 수 있게하는 기능 구현
- 3. 달력
-  - 임시 공휴일이 제대로 적용되게 구현
- 4. 규칙 (반복 일정)
-  - 규칙을 생성할때 주기를 정하여 규칙이 자동으로 생성되게 구현
-  - 규칙(RoutineData)과 규칙의 실행 결과(RoutineRecord)를 분리하여 원본 규칙이 수정되거나 삭제되도 과거의 수행 이력은 보존
-  - 수백, 수천개에 달할 수 있는 미래의 규칙은 미리 저장하지않고, 달력을 그리는 시점에 가상 객체(Instance)를 생성해 실시간으로 계산하여 UI에 배치함으로써 저장 성능 최적화
- 5. 데이터 저장
-  - UI 스레드가 멈추지 않도록 데이터 저장은 async/await을 사용하여 비동기로 처리
-  - CancellationTokenSource를 사용하여 3초동안 입력이 없으면 데이터 저장 실행 (매번 데이터를 처리하지않고 입력이 없을때 한번에 처리)
-  - 데이터 저장시 .tmp로 먼저 저장하고 기존 파일과 교체 (데이터 저장 중 프로그램 종료시 데이터 깨지지 않도록)
- 6. 데이터 수정
-  - 완료한 규칙은 보존하고 미래의 규칙은 갱신하는 수정 로직 구현
-  - 과거 규칙을 수정할 경우 과거 규칙은 스냅샷 형태로 관리하고있기에 해당 날짜의 규칙 정보만 수정함
-  - 오늘 날짜의 규칙을 수정할 경우 
-    ① 단순 변경: 제목, 내용만 수정하면 저장되있는 스냅샷 데이터의 제목, 내용 부분만 수정함
-    ② 계획 변경: 주기나 요일 등 핵심 정보를 수정할 경우 기존 규칙은 어제부로 종료시키고 오늘부터 새로운 규칙을 생성하여 자동 전환(과거의 기록들은 그대로 유지됨)
-  - 미래 규칙을 수정할 경우 규칙 자체의 정보를 수정하여 오늘 이후로 표시되는 규칙들에 변경사항이 즉시 반영되게함
- 7. Interface 사용 (익숙하진 않아서 사용할수있는 부분에 적용하며 만듦)
-  - ITodoRepository, ISettingRepository 인터페이스를 구현해 저장 방식을 교체해도 다른 로직에 영향을 주지 않도록 구현
-  - IRoutineViewModel이라는 공통 인터페이스를 구현해서 ViewModel이 달라도 공통 메서드는 호출할 수 있게끔 다형성 구현
 
-## 주요 기능
-### 달력
+# 주요 기능
 
-https://github.com/user-attachments/assets/8138e091-2bad-4755-ad14-eb0816d3c83b
+ ### ① MVVM 패턴 사용
+  - 새로운 창을 띄울때 ViewModel에서 직접 생성하지않고 Messenger를 통해 생성 메세지를 전달하면 WindowService 클래스가 메세지를 수신하여 창을 띄워주게 설계
+  - Interface를 활용하여 상위 객체가 하위 객체의 정확한 데이터 타입을 몰라도 공통 메서드를 호출할수있게 설계
+  - 규칙(RoutineData, RoutineRecord)을 View에 표시할떄 UI 전용 Wrapper 객체인 RoutineInstance를 사용해 View는 RoutineInstance에만 접근하면 되게끔 설계
 
- - CalendarDayModel이라는 DataClass를 만들어서 날짜마다 정보(날짜, 요일, 휴일 여부, 선택 상태, 해당 날짜의 일정과 규칙 등)를 저장 (매달 최소 28개의 CalendarDayModel이 존재) 
+ ### ② 사용자 UI와 편의성
+  - 프로그램을 전체화면으로 변경할때 작업 표시줄까지 가리지않게 구현
+  - 최소화시 SystemTray로 이동시키는 기능과 해당 옵션을 사용자가 선택할수있게 구현
+  - OS 부팅시 프로그램이 자동으로 실행되는 기능과 해당 옵션을 선택할수있게 구현
+
+ ### ③ 데이터 저장 및 안정성
+  - 데이터를 처리할때 UI가 멈추는 현상을 방지하기위해 async/await을 사용해 데이터를 비동기로 처리하게 구현
+  - CancellationTokenSource를 사용하여 3초동안 입력이 멈추면 데이터를 처리하게 만들어 성능 최적화
+  - 데이터 저장시 .tmp 파일로 임시 저장한뒤 원본 파일과 교체하여 데이터 파손을 방지
+
+---
+
+## 달력
+
+https://github.com/user-attachments/assets/4d35c900-419c-4bdc-8624-c8832831fd04
+
+ ### ① 달력 기능
+ - 달력의 날짜를 채울때 날짜 하나마다 CalendarDayModel이라는 DataClass를 생성해서 정보(날짜, 요일, 휴일 여부, 선택 상태, 해당 날짜의 일정 등)를 저장
  - 달력의 달이 바뀌면 CalendarDayModel들을 전부 교체하고 데이터 저장소에 접근해서 표시해야할 Schedule과 Routine이 있는지 확인하여 적용함
- - 달력의 년도가 바뀌면 HolidayProvider에서 해당 년도의 공휴일과 임시 공휴일을 계산하여 가지고있고, CalendarDayModel이 생성될때마다 HolidayProvider에게 오늘이 휴일인지 체크하여 휴일을 표시함
  - 달력의 날짜를 클릭하면 해당 날짜의 일정이 왼쪽 패널에 표시되고 체크박스로 완료 여부를 변경할 수 있음
+ - 체크박스를 체크하여 데이터의 상태(완료, 실패, 대기)를 변경하면 즉시 저장하지 않고 3초동안 입력이 없을때 저장함(값을 연속해서 바꾸면 마지막에 한번만 저장)
+ - 한 날짜의 일정, 규칙 갯수가 7개를 넘어가면 맨 아래 표시되는 일정 텍스트가 ...(+n)으로 변경됨
 
-### 일정, 규칙
- - 규칙(반복 일정)을 효율적으로 관리하기 위해 데이터를 3단계로 추상화하여 관리
-   ① RoutineData - 규칙의 설계도로 기본 정보와 반복 주기 데이터를 포함하며 TodoStorage에 저장되어 관리함
-   ② RoutineRecord - 특정 날짜의 실행 결과로 규칙의 성공/실패 상태를 저장하며, 원본 규칙이 변경되어도 과거 기록은 보존되도록 독립된 스냅샷 정보를 유지함
-   ③ RoutineInstance - UI 표현을 위한 가상 모델로 과거 규칙은 Record 기반으로, 미래 규칙은 Data 기반으로 데이터를 결합해 View에 일관된 데이터를 제공함
+ ### ② 음력 공휴일과 임시 공휴일 적용
+ - 음력 공휴일은 .NET 프레임워크에 내장된 KoreanLunisolarCalendar 클래스를 활용해 구현
+ - 달력의 연도가 바뀌면 HolidayProvider에서 해당 연도의 공휴일과 임시 공휴일을 계산하여 가지고있고, CalendarDayModel이 생성될때마다 HolidayProvider를 통해 오늘이 휴일인지 확인하여 휴일을 표시함
+
+## 일정, 규칙(반복 일정)
+  - 프로그램 실행 시 저장소의 LastUpdate가 오늘 이전의 날짜로 저장돼있으면 오늘 이전 날짜들의 일정, 규칙 Status(상태) 값을 Failure(실패)로 변경함
+ #### ① 일정
+  - ScheduleData라는 DataClass로 관리하고 세부적으론 일정의 제목, 내용, 날짜 정보를 관리함
+
+ #### ② 규칙(반복 일정) 설계 (RoutineData, RoutineRecord, RoutineInstance)
+  - 규칙은 생성시 RoutineData라는 DataClass로 관리하고 세부적으론 제목, 내용, 시작 날짜, 종료 날짜, 주기 등 규칙 생성에관한 중요 정보를 관리함
+  - 위 RoutineData를 기반으로 RoutineRecord라는 DataClass를 생성하여 규칙을 생성하고 저장, 관리함 (과거 규칙은 RoutineRecord 형태로 저장소에 저장하여 RoutineData가 수정, 삭제되도 과거 기록은 보존될수있게 설계)
+  - 수백, 수천개에 달할수있는 미래 규칙은 미리 저장하지않고 달력을 그리는 시점에 실시간으로 계산해 UI에 표시
+  - 달력에 규칙을 표시할땐 RoutineInstance라는 DataClass를 생성하여 View에서는 RoutineInstance에만 접근하여 바인딩하면 되게끔 설계
+  ##### ⓐ RoutineData - 규칙의 설계도로 기본 정보와 반복 주기 데이터를 포함하며 TodoStorage에 저장되어 관리함
+  ##### ⓑ RoutineRecord - 특정 날짜의 실행 결과로 규칙의 성공/실패 상태를 저장하며, 원본 규칙이 변경되어도 과거 기록은 보존되도록 독립된 스냅샷 정보를 유지함
+  ##### ⓒ RoutineInstance - UI 표현을 위한 가상 모델로 과거 규칙은 Record 기반으로, 미래 규칙은 Data 기반으로 데이터를 결합해 View에 일관된 데이터를 제공함
    
-#### 일정, 규칙 등록
+### 일정, 규칙 등록
 
 https://github.com/user-attachments/assets/aa66ac2e-1992-4e67-8e5b-05bcceea4bd7
 
- - 일정이나 규칙을 추가할땐 MainViewModel에서 TodoWindow를 그려달라고 ViewModel을 만들어서 Messenger에 메세지를 보내고 app.xaml.cs에서 해당 메세지를 확인하고 ViewModel에 맞는 Window를 WindowService에 요청해서 화면에 띄워줌
- - Window에서 데이터를 입력하고 등록 버튼을 누르면 TodoStorage에 데이터를 추가하고 DataManager에 데이터 저장 요청, Messenger에 UI 업데이트 메세지를 보냄 -> 이를 CalendarViewModel이 확인하여 UI를 갱신
- - DataManager는 데이터 저장 요청이 들어오면 TodoStorage의 값들을 통째로 Json으로 변환하여 경로에 저장함
+ #### ① 등록 기능 및 데이터 저장
+  - 데이터를 입력하고 등록 버튼을 누르면 TodoStorage에 데이터를 추가하고 DataManager에 데이터 저장 요청, Messenger에 UI 업데이트 메세지를 보냄 -> 이를 CalendarViewModel이 확인하여 UI를 갱신
+  - DataManager는 데이터 저장 요청이 들어오면 TodoStorage의 값들을 통째로 Json으로 변환하여 FileHelper에 입력된 경로에 저장함
+  - 규칙을 생성할때 시작 날짜가 오늘 이전이면 오늘 이전의 RoutineRecord의 Status(상태) 값은 Failure(실패) 처리
 
-#### 일정, 규칙 수정
+### 일정, 규칙 수정
 
 https://github.com/user-attachments/assets/7aff627a-3c94-46ff-9863-9ff90022f27f
 
- - 일정이나 규칙을 수정할땐 날짜를 선택하고 왼쪽 패널의 목록에서 텍스트를 더블 클릭하여 수정 창을 열 수 있음 (Window를 여는건 Messenger에게 Window를 그려달라고 메세지를 보내는 방식)
- - Window에서 데이터를 수정하고 수정 버튼을 누르면 TodoStorage에서 해당 데이터를 수정하고 DataManager에 데이터 저장 요청, Messenger에 UI 업데이트 메세지를 보냄 -> 이를 CalendarViewModel이 확인하여 UI를 갱신
- - DataManager는 데이터 저장 요청이 들어오면 TodoStorage의 값들을 통째로 Json으로 변환하여 FileHelper에 입력된 경로에 저장함
+ #### ① 수정 기능
+ - 데이터를 수정할땐 날짜를 선택하고 왼쪽 패널의 목록에서 텍스트를 더블 클릭하여 수정 창을 열수있음
+ - 수정 창에서 값을 변경하고 수정 버튼을 클릭시 참조중인 데이터의 값을 수정하고 DataManager에 저장 요청을 보냄
+
+ #### ② 수정 로직
+  - 과거 규칙을 수정할 경우 과거 규칙은 스냅샷 형태로 관리하고있기에 해당 날짜의 규칙 정보(RoutineRecord)만 수정함
+  - 오늘 날짜의 규칙을 수정할 경우  
+    ⓐ 단순 변경: 제목, 내용만 수정하면 저장되있는 스냅샷 데이터(RoutineRecord)의 제목, 내용 부분만 수정함  
+    ⓑ 계획 변경: 주기나 요일 등 핵심 정보를 수정할 경우 기존 규칙(RoutineData)은 어제부로 종료시키고 새로운 규칙(RoutineData)을 생성하여 자동 전환(과거의 기록들은 그대로 유지됨)  
+  - 미래 규칙을 수정할 경우 규칙 자체의 정보(RoutineData)를 수정하여 오늘 이후로 표시되는 규칙들에 변경사항이 즉시 반영되게함
+  - RoutineData를 수정하면 시작 날짜가 오늘 이전이여도 오늘 이전 날짜의 RoutineRecord의 Status는 Waiting(대기)로 처리(RoutineData를 삭제하면 자신의 ID를 참조하는 RoutineRecord 중 Status값이 Waiting인걸 전부 삭제하기때문에 잘못 수정했을경우 삭제하기 쉽도록)
  
-#### 일정, 규칙 삭제
+### 일정, 규칙 삭제
 
 https://github.com/user-attachments/assets/9d19567c-c5c7-4b96-95ba-42435b45f296
 
- - 일정이나 규칙을 제거할땐 수정 창을 열어서 삭제 버튼을 눌러 삭제가 가능함
- - Window에서 삭제 버튼을 누르면 TodoStorage에서 해당 데이터를 삭제하고 DataManager에 데이터 저장 요청, Messenger에 UI 업데이트 메세지를 보냄 -> 이를 CalendarViewModel이 확인하여 UI를 갱신
- - DataManager는 데이터 저장 요청이 들어오면 TodoStorage의 값들을 통째로 Json으로 변환하여 FileHelper에 입력된 경로에 저장함
+ #### ① 삭제 기능
+ - 일정이나 규칙을 삭제할땐 수정 창을 열어서 삭제 버튼을 눌러 삭제가 가능함
+ - Window에서 삭제 버튼을 누르면 TodoStorage에서 해당 데이터를 삭제하고 DataManager에 데이터 저장 요청을 보냄
 
-#### 일정, 규칙 목록
+### 일정, 규칙 목록
 
 https://github.com/user-attachments/assets/77210e47-88be-403d-bb5a-697503a149d4
 
+ #### ① 목록 기능
  - 목록 버튼을 눌러서 등록한 모든 일정과 규칙을 확인하고 삭제, 수정 할 수 있음
- - 체크박스를 선택해 삭제할 일정을 여러개 선택할 수 있고 체크박스 외의 흰 바탕 부분을 클릭하면 일정이 파란색으로 선택되는데 수정 버튼을 누르면 파란색으로 선택된 데이터를 수정할 수 있음 (더블 클릭으로도 수정 가능)
  - 상단 탭으로 일정, 규칙, 과거 규칙 세가지 형태의 데이터에 접근이 가능
+ - 체크박스를 선택해 삭제할 일정을 여러개 선택할 수 있음
+ - 체크박스 외의 흰 바탕 부분을 클릭하면 일정이 파란색으로 선택되는데 수정 버튼을 누르면 파란색으로 선택된 데이터를 수정할 수 있음 (더블 클릭으로도 수정 가능)
 
-### 설정
+---
+
+## 설정
 
 https://github.com/user-attachments/assets/b89b817f-09d5-47d6-ac11-f1df0a4c0d08
 
@@ -91,54 +111,53 @@ https://github.com/user-attachments/assets/b89b817f-09d5-47d6-ac11-f1df0a4c0d08
  - 프로그램 자동 실행을 키면 AutoStartService에서 Registry에 접근해 현재 사용자의 권한으로 자동 실행을 등록함
  - 최소화시 시스템 트레이로 이동을 키면 프로그램 전역에서 Messenger를 통해 WindowService의 Minimize를 호출할 경우 MainWindow를 작업 표시줄에서 안보이게 변경하고 Alt + Tab을 눌러도 보이지 않게 Hide()로 상태를 변경함
 
-### 만들며 어려웠던 점과 어떻게 해결했는지
- 1. /View/Calendar/CalendarView에서 각 날짜마다 해야할 일을 나열할때 n번째 데이터는 조건에따라 텍스트를 변경하거나 Visible을 관리해야해서 ItemsControl의 AlternationCount를 이용해 데이터마다 번호를 부여한 뒤
-    MultiDataTrigger에서 데이터마다 할당받은 AlternationIndex에 접근해 자신이 몇번째 데이터인지 확인하여 조건에따라 처리하려했는데 모든 데이터의 AlternationIndex가 0으로 인식되는 오류가 발생했었다.
-    
-    찾아보니 WPF의 ItemsControl은
-    ① 만들어야하는 Items의 갯수만큼 ContentPresenter라는 틀을 생성하고 내부에 필요한 Elements(UI 요소)들을 생성하여 쌓아둔 뒤
-    ② 각 Elements들에 설정된 Style, Trigger 등을 적용한 후에
-    ③ ContentPresenter별로 내부 Elements들의 위치 배열, 부모 자식 관계 연결, ContentPresenter들의 순서 배치 등의 단계를 거친다.
-    여기서 3번의 단계에서 각 데이터마다 AlternationIndex를 할당받는데 MultiDataTrigger는 2번 단계에서 AlternationIndex 값을 받아와 처리하려했기때문에 모든 데이터의 AlternationIndex가 0으로 인식되고있었다.
-    
-    MultiDataTrigger는 자신과 같은 라인의 자식 요소들의 속성 변화는 잘 감지하는데 부모 요소인 ContentPresenter의 속성(AlternationIndex)을 주시하게하면 첫 로딩시점에만 검사하고 이후엔 값의 변화를 놓칠수있다고하기에
-    MultiDataTrigger에서 자신과 같은 ContentPresenter의 자식 요소인 Grid의 Tag를 검사하게 변경하고 Grid.Tag는 Binding으로 AlternationIndex의 값과 연결해 AlternationIndex의 값이 변경되면 Tag값도 즉시 변경되도록 만들었다.
-    이렇게하면 AlternationIndex가 부여돼 Grid.Tag가 업데이트되고 MultiDataTrigger에서 Grid.Tag의 변화를 감지하여 3번의 단계에서도 정상적으로 MultiDataTrigger가 동작할 수 있도록 만들어서 해결했다.
-    
- 2. /Common/Util/FileHelper에서 데이터를 Json 형식으로 저장하려했는데, 기존 Json 데이터만 남아있고 변경한 데이터는 저장되지않고 사라지는 문제가 발생했었다.
+---
 
-    프로그램이 실행될 때 LoadJson으로 Json 데이터를 읽어왔는데 이때 데이터를 읽어온 후 파일을 닫지 않아서 계속 Json 파일이 실행중인 상태였고
-    데이터를 저장하기위해 Json 파일에 접근하는데 이미 사용중인 파일엔 정삭적으로 쓰기 작업이 불가능해서 데이터 저장에 실패하는 상황이였다.
+# 만들며 어려웠던 점과 어떻게 해결했는지 (문제 발생과 원인 분석, 해결의 자세한 내용은 문서 폴더의 문제 해결.txt에 기술)
+ ### ① WPF ItemsControl의 렌더링 시점에 따른 트리거 오작동 (/View/Calendar/CalendarView.xaml)
+  [문제] CalendarView의 ItemsControl 내부에서 MultiDataTrigger로 AlternationCount를 사용해 하위 객체에 부여된 AlternationIndex 값에 따라 데이터를 변경하려 했으나 모든 하위 객체의 AlternationIndex가 0으로 인식됨
+  
+  [원인] WPF의 ItemControls 렌더링 생명주기상 MultiDataTrigger의 적용 시점이 AlternationCount를 부여하는 단계보다 빠르기 때문에 초기 로드시 AlternationIndex값을 정상적으로 참조하지 못하는것을 확인
 
-    using을 이용해 Json 데이터를 읽어온 후 확실하게 파일을 종료하여 데이터를 저장할때 파일이 사용중이지 않게 변경하여 해결했다.
-    
- 3. /Common/Service/WindowService에서 메신저를 통해 Minimize가 호출됐을때 "예외 발생: 'System.InvalidOperationException'(PresentationCore.dll)'" 라고 뜨면서 프로그램이 멈추는 오류가 발생했었다.
+  [해결] MultiDataTrigger는 부모 요소의 속성 변화를 제대로 감지하지 못하기에 동일 계층의 Grid.Tag를 중간 매개체로 활용해 Grid.Tag에 AlternationIndex값을 바인딩하여 값의 변화를 MultiDataTrigger가 즉시 감지할수있도록 우회
+  
+ ### ② 파일 미종료로 인한 Json 저장 실패 (/Common/Util/FileHelper.cs)
+  [문제] FileHelper에서 데이터를 Json 형식으로 저장하려했는데, 기존 Json 데이터만 남아있고 변경 사항이 반영되지 않음
 
-    찾아보니 UI 스레드가 아닌 다른 스레드에서 UI 요소를 수정하려할때 발생한다고하는데 보통 Dispatcher를 사용해 UI 스레드가 한가할때 작업 시키기위해 대기시키는 방법으로 해결한다고해서 따라해봤는데 계속 동일한 오류가 반복됐다.
-    근데 아무리 생각해봐도 사용자가 버튼을 클릭 -> UI 이벤트 발생 -> 메인 스레드에서 Command 실행 -> Command 내부에서 Messenger를 통해 WindowService.Minimize 호출 이라는 단계를 거쳐 명령이 실행되는데 다른 스레드에서 UI를 수정하는건 아닌거같았다.
-    다른 코드들도 확인하고있자니 나는 타이틀바를 커스텀으로 만들어서 사용하고있었고 /View/MainTitleBarView에서 /Common/Util/WindowBehavior를 사용해 커스텀 타이틀바의 윈도우 창 이동을 구현하고 있었다.
-    WindowService의 Minimze는 커스텀 타이틀 바 내부의 최소화 버튼을 누르면 동작하는 방식이였다.
-    최소화 버튼을 누를때 WindowBehavior의 DragMove가 잠깐 동작되고 이때 WindowService의 Minimize 요청까지 동시에 이루어져 하나의 동작이 이루어질때 다른 동작을 요청해서 충돌이 발생하는거였다.
+  [원인] LoadJson 과정에서 파일을 읽어온 후 닫지 않아서 다른 프로세스(저장 로직)가 해당 파일에 접근할때 '파일 쓰기 권한' 충돌 발생
 
-    해결하기위해 WindowBehaivor에서 Mouse의 상태가 Pressed 상태일때만 DragMove가 동작하게 방어 코드를 작성하고, 또 다른 경우에 대비해 WindowService에 lock과 bool 변수를 추가해 한번에 하나의 동작만 가능하도록 방어 코드를 구현해 해결했다.
-    
- 4. 프로그램을 정상적으로 종료해도 메모리를 50 ~ 60MB씩 점유하고 정상적으로 종료되지 않는 문제가 발생했었다.
-    
-    프로그램이 종료되면 app.xaml.cs의 OnExit() 메서드가 호출되는데 여기서 프로그램 종료 직전에 최종으로 데이터를 저장하는 메서드를 호출하게 설계했다.
-    그런데 그 메서드에서 비동기 데이터 저장 메서드 2개를 .GetAwaiter().GetResult()를 붙여서 호출하게 만들었고 이러면 UI 스레드에서 비동기 메서드가 종료될때까지 대기 상태에 돌입하게된다.
-    비동기 메서드들은 자신의 일을 처리하고 시작 지점(UI 스레드)으로 돌아와서 완료 신호를 전송해야하는데 GetResult로 인해 UI 스레드 자체가 대기상태가 돼서 돌아갈수 없기때문에 데드락이 발생했었다.
+  [해결] using 블록을 이용해 Json 데이터를 읽은 후 확실하게 파일을 종료하여 저장 로직이 접근 권한을 즉시 확보할수 있도록 수정
 
-    이를 해결하기위해 Task.Run을 사용해서 다른 스레드에게 비동기 작업 자체를 위임시켰다.
-    (해당 스레드 내부에서 완료 신호까지 UI 스레드에게 전달해주기때문에 GetResult는 완료 신호를 받고 다음 코드를 진행할수있게된다.)
+ ### ③ 메서드 충돌로 인해 'System.InvalidOperationException'(PresentationCore.dll)' 예외 발생
+  [문제] 커스텀 타이틀바의 최소화 버튼 클릭시 'System.InvalidOperationException'(PresentationCore.dll)' 발생 및 프로그램 정지
+
+  [원인] 최소화 버튼 클릭시 WindowBehavior.DragMove와 WindowService.Minimize 요청이 동시에 발생하여 윈도우 상태 변경 로직이 충돌함
+
+  [해결] 마우스 Pressed 상태일 때만 DragMove가 동작하도록 방어 코드 작성, WindowBehaivor에도 추가 방어 코드 작성
+
+ ### ④ 프로그램 종료 시 비동기 메서드의 동기적 호출로 인한 데드락 발생 (/App.xaml.cs (OnExit))
+  [문제] 프로그램 종료 후에도 프로세스가 소멸되지않고 메모리를 점유함
+
+  [원인] OnExit에서 비동기 저장 메서드를 GetResult()를 사용하여 호출하니 UI 스레드가 비동기 작업 완료 신호를 기다리는 동안 작업은 완료 후 복귀할 UI 스레드가 차단되어있어 서로 무한 대기하는 데드락 발생
+
+  [해결] Task.Run을 사용해 비동기 작업 자체를 백그라운드 스레드로 위임하여 UI 스레드와의 의존성을 분리함
+
+---
 
 # 만들며 아쉬웠던 점
- 화면 기획서는 잘 작성했지만 데이터 처리, 인터페이스, 객체간의 상속 등 세부적인 프로그램 동작 기획서를 작성하지 않고 개발을 시작했는데
- 규칙(Routine) 추가 및 수정 기능을 구현할때 일간, 주간, 월간, 연간으로 나뉘는 복잡한 조건부 로직과 과거, 현재, 미래 어느 시점의 데이터를 수정하는지에 따라 바뀌는 수정 대상 등
- 데이터 처리 구조를 설계하는 과정에서 코드 수정이 빈번히 일어나서 생각보다 많은 개발 시간이 소요됐었다.
- 나중에는 동작 기획서, 로직 순서도 등 복잡한 과정을 어떻게 해결할지 미리 정해놓고 개발을 시작하는게 좋을 것 같다.
+ ### ① 세부 설계 기획의 부재로 인한 개발 시간 증가
+  - 화면 기획서만 작성하고 데이터 흐름, 객체간 상속 구조, 조건부 로직 등 세부 동작 설계서 없이 개발에 착수했더니 Routine을 설계할때 많은 시간이 걸림 (만들고 수정하고 또 수정하고..)
+  - 앞으로 순서도나 클래스별 용도와 이름, 핵심이 되는 로직의 방향성 등은 제대로 기획서를 작성하고 개발을 착수해야겠다고 느낌 (나중에 주석만 봐도 한번에 이해할수있게 주석도 상세하게 잘 달아놓기)
+
+ ### ② 추상화 및 다형성 활용의 미흡
+  - 인터페이스를 사용하여 결합도를 낮춘 설계를 만들고자 했는데 DataManager같은 핵심 로직에서 switch문을 사용해 하위 객체의 구체적인 타입을 직접 참조하고있음
+  - 다형성과 여러가지 패턴들을 공부하여 필요한 상황에 적절하게 사용할수있게 만들어야할거같음
+
+---
 
 # 업데이트 예정 기능
- 1. RoutineRecords가 많아지면 메모리 점유율이 높아질수있기에 RoutineRecords는 RoutineRecords 폴더를 만들어서 yyyy_MM.json 형태로 월별로 저장하기
+ ### ① RoutineRecord가 많아지면 메모리 점유율이 높아질수있기에 RoutineRecord는 RoutineRecords 폴더를 만들어서 yyyy_MM.json 형태로 월별로 저장하기
   - 이에따라 TodoStorage의 Records에는 현재 표시중인 달의 RoutineRecords만 저장하게 변경하기 (캐시화)
   - ListWindow를 열때 TodoStorage의 Records에 접근하는게 아닌 ListWindow 자체에 모든 Records를 불러오게끔 만들기 (아니면 기간을 선택해서 해당 기간의 Records만 불러오기)
- 2. RoutineRecords를 수정할땐 시작 날짜, 종료 날짜 안보이게하고 Title, Content, 날짜만 보여주기 (Schdule 창으로 적용시키거나 새로운 창 만들기)
+ ### ② RoutineRecord를 수정할땐 시작 날짜, 종료 날짜 안보이게하고 Title, Content, 날짜만 보여주기
+  - Schdule 창으로 적용시키거나 새로운 창 만들기

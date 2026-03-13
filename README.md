@@ -75,13 +75,8 @@ https://github.com/user-attachments/assets/7aff627a-3c94-46ff-9863-9ff90022f27f
  - 데이터를 수정할땐 날짜를 선택하고 왼쪽 패널의 목록에서 텍스트를 더블 클릭하여 수정 창을 열수있음
  - 수정 창에서 값을 변경하고 수정 버튼을 클릭시 참조중인 데이터의 값을 수정하고 DataManager에 저장 요청을 보냄
 
- #### ② 수정 로직
-  - 과거 규칙을 수정할 경우 과거 규칙은 스냅샷 형태로 관리하고있기에 해당 날짜의 규칙 정보(RoutineRecord)만 수정함
-  - 오늘 날짜의 규칙을 수정할 경우  
-    ⓐ 단순 변경: 제목, 내용만 수정하면 저장되있는 스냅샷 데이터(RoutineRecord)의 제목, 내용 부분만 수정함  
-    ⓑ 계획 변경: 주기나 요일 등 핵심 정보를 수정할 경우 기존 규칙(RoutineData)은 어제부로 종료시키고 새로운 규칙(RoutineData)을 생성하여 자동 전환(과거의 기록들은 그대로 유지됨)  
-  - 미래 규칙을 수정할 경우 규칙 자체의 정보(RoutineData)를 수정하여 오늘 이후로 표시되는 규칙들에 변경사항이 즉시 반영되게함
-  - RoutineData를 수정하면 시작 날짜가 오늘 이전이여도 오늘 이전 날짜의 RoutineRecord의 Status는 Waiting(대기)로 처리(RoutineData를 삭제하면 자신의 ID를 참조하는 RoutineRecord 중 Status값이 Waiting인걸 전부 삭제하기때문에 잘못 수정했을경우 삭제하기 쉽도록)
+ #### ② 수정 데이터 흐름도
+ <img width="801" height="1041" alt="Routine 수정 데이터 흐름도" src="https://github.com/user-attachments/assets/692391af-87d3-43bd-ba87-0fdc57a71fbd" />
  
 ### 일정, 규칙 삭제
 
@@ -90,6 +85,8 @@ https://github.com/user-attachments/assets/9d19567c-c5c7-4b96-95ba-42435b45f296
  #### ① 삭제 기능
  - 일정이나 규칙을 삭제할땐 수정 창을 열어서 삭제 버튼을 눌러 삭제가 가능함
  - Window에서 삭제 버튼을 누르면 TodoStorage에서 해당 데이터를 삭제하고 DataManager에 데이터 저장 요청을 보냄
+ - RoutineData를 삭제할때 자신을 참조하여 생성된 RoutineRecord중 Status값이 Waiting인 RoutineRecord들을 쓰레기 값으로 판단하고 전부 제거함<br/>
+   (RoutineData를 수정하여 신규 RoutineData가 생성됐을떄 Status를 Waiting으로 설정하여 생성하는데 잘못 수정했을떄 삭제하기 쉽게끔 설계)
 
 ### 일정, 규칙 목록
 

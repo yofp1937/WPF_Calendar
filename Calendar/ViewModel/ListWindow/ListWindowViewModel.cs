@@ -130,7 +130,9 @@ namespace Calendar.ViewModel.ListWindow
                 RoutineDataList.Add(routineData);
             }
             // 3. RoutineRecord 채우기
-            foreach (RoutineRecord routineRecord in storage.RoutineRecords)
+            // 정렬은 날짜 -> 생성 순서 순으로 오름차순 정렬
+            var sortedRecords = storage.RoutineRecords.OrderBy(r => r.Date).ThenBy(r => r.CreatedTicks);
+            foreach (RoutineRecord routineRecord in sortedRecords)
             {
                 ConnectEventToData(routineRecord);
                 RoutineRecordList.Add(routineRecord);

@@ -6,6 +6,7 @@ using Calendar.Common.Messages;
 using Calendar.Common.Util;
 using Calendar.Model.DataClass.TodoEntities;
 using Calendar.Model.Enum;
+using System.Diagnostics;
 
 namespace Calendar.ViewModel.TodoWindow
 {
@@ -75,7 +76,7 @@ namespace Calendar.ViewModel.TodoWindow
                 if (_routineRecord == null) return;
 
                 // 1. 과거 데이터면 RoutineRecord만 제거
-                if (today > _routineRecord.Date.Date)
+                if (today > _routineRecord.Date.Date || _routineData == null)
                 {
                     _ = TodoRepository.DeleteData_AsyncSave(_routineRecord);
                 }
@@ -109,8 +110,26 @@ namespace Calendar.ViewModel.TodoWindow
             // Routine일 경우 규칙 수정 Data Setting
             else if (IsRoutine)
             {
+                // RoutineRecord가 있으면 Record 우선으로 채움
+                if (_routineRecord != null)
+                {
+                    SetUICommonAndStatusDataFromTarget(_routineRecord);
+                    // RoutineData가 존재하면 RoutineData 값도 추가로 보완
+                    if (_routineData != null)
+                    {
+                        SelectedRoutineType = _routineData.RoutineType;
+                        IsIndefinite = _routineData.IsIndefinite;
+                        EndDate = IsIndefinite ? _routineData.StartDate.AddYears(1) : _routineData.EndDate;
+                        SelectedComboBoxItem = _routineData.Frequency - 1;
+                    }
+                    else
+                    {
+                        IsIndefinite = false;
+                        EndDate = _routineRecord.Date;
+                    }
+                }
                 // RoutineData 수정일 경우
-                if (_routineData != null)
+                else if (_routineData != null)
                 {
                     SetUICommonDataFromTarget(_routineData);
                     SelectedRoutineType = _routineData.RoutineType;
@@ -119,12 +138,6 @@ namespace Calendar.ViewModel.TodoWindow
                     SelectedComboBoxItem = _routineData.Frequency - 1;
                 }
                 // RoutineRecord 수정일 경우
-                else if (_routineRecord != null)
-                {
-                    SetUICommonAndStatusDataFromTarget(_routineRecord);
-                    IsIndefinite = false;
-                    EndDate = _routineRecord.Date;
-                }
 
                 if (CurrentRoutineVM is IRoutineViewModel routineVM)
                 {
@@ -152,12 +165,11 @@ namespace Calendar.ViewModel.TodoWindow
         {
             if (_routineData == null) return false;
 
-            if (_routineData.StartDate != StartDate) return true;
+            if (_routineData.StartDate.Date != StartDate.Date) return true;
             if (_routineData.RoutineType != SelectedRoutineType) return true;
-            if (_routineData.EndDate != EndDate) return true;
-            if (_routineData.IsIndefinite != IsIndefinite) return true;
             if (_routineData.Frequency != SelectedComboBoxItem + 1) return true;
             // 기한 없음 체크 해제돼있고 EndDate 다르면
+            if (_routineData.IsIndefinite != IsIndefinite) return true;
             if (!IsIndefinite && _routineData.EndDate != EndDate) return true;
 
             if (CurrentRoutineVM is IRoutineViewModel routineVM)
@@ -172,6 +184,7 @@ namespace Calendar.ViewModel.TodoWindow
                     _ => false
                 };
             }
+            Debug.WriteLine($"CheckRoutineDataModified: 핵심 변수 안변함 false");
             return false;
         }
 
@@ -199,17 +212,16 @@ namespace Calendar.ViewModel.TodoWindow
         private void OperateRoutineEditProcess()
         {
             // 루틴 아니면 retrun
-            if (!IsRoutine) return;
+            if (!IsRoutine || _routineRecord == null) return;
 
             DateTime today = DateTime.Today;
 
-            // 1.RoutineData를 수정하는가?
-            if (_routineRecord == null || _routineRecord.Date >= today)
+            // 미래의 데이터를 수정하는가?
+            if (_routineRecord.Date > today)
             {
                 UpdateFutureRoutine();
             }
-
-            if (_routineRecord != null)
+            else
             {
                 _routineRecord.Status = CurrentStatus;
                 // 1. 과거의 RoutineRecord을 수정하려하는가?
@@ -232,13 +244,25 @@ namespace Calendar.ViewModel.TodoWindow
         {
             if (_routineData == null) return;
 
-            // 시작 날짜를 오늘로 설정하여 새로운 루틴을 생성
-            RoutineData newData = ApplyRoutineData(new());
-            newData.StartDate = DateTime.Today;
-            GeneratePastRecords(newData);
+            // RoutineData의 핵심 데이터가 바뀌었으면
+            if(CheckRoutineDataModified())
+            {
+                // 기존 루틴은 어제부로 종료하고
+                TodoRepository.GetTodoStorage().FinishedOrRemoveRoutineData(_routineData);
 
-            // 기존 루틴 제거
-            _ = TodoRepository.ReplaceRoutineData(_routineData, newData);
+                // 새로운 루틴 생성하여 추가
+                RoutineData newData = ApplyRoutineData(new());
+                if(TodoRepository.TempEditRoutineAndRegister(_routineData, newData))
+                    _ = TodoRepository.AddOrUpdateData_AsyncSave(newData);
+            }
+            // Title, Content만 수정됐으면
+            else
+            {
+                // 기존 루틴의 Title, Content만 수정하고 저장
+                _routineData.TodoTitle = TitleTextBox.Trim();
+                _routineData.TodoContent = ContentTextBox?.Trim() ?? string.Empty;
+                _ = TodoRepository.AddOrUpdateData_AsyncSave(_routineData);
+            }
         }
 
         /// <summary>
@@ -273,11 +297,8 @@ namespace Calendar.ViewModel.TodoWindow
             else
             {
                 RoutineData newData = ApplyRoutineData(new());
-                newData.StartDate = DateTime.Today;
-                GeneratePastRecords(newData);
-
-                // 기존 루틴 제거
-                _ = TodoRepository.ReplaceRoutineData(_routineData, newData);
+                if(TodoRepository.TempEditRoutineAndRegister(_routineData, newData))
+                    _ = TodoRepository.AddOrUpdateData_AsyncSave(newData);
             }
         }
         #endregion

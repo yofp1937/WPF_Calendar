@@ -294,13 +294,10 @@ namespace Calendar.Common.Service
             {
                 editVM = new EditTodoViewModel(todoRepository, routineData);
             }
+            // RoutineInstance는 RoutineRecord를 상속받기때문에 여기서 실행
             else if (obj is RoutineRecord routineRecord)
             {
                 editVM = new EditTodoViewModel(todoRepository, routineRecord);
-            }
-            else if (obj is RoutineInstance routineInstance)
-            {
-                editVM = new EditTodoViewModel(todoRepository, routineInstance);
             }
 
             return editVM != null ? ShowDialog(editVM) : false;

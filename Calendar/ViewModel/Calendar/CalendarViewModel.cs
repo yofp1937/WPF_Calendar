@@ -185,6 +185,8 @@ namespace Calendar.ViewModel.Calendar
                 {
                     // 이미 RoutineRecord 검사에서 표시한건 건너뛰기
                     if (guidHash.Contains(routine.Id)) continue;
+                    // 종료 날짜가 오늘 이전인 RoutineData는 그리지 않음
+                    if (!routine.IsIndefinite && routine.EndDate < DateTime.Today) continue;
 
                     // 1.오늘 표시돼야하는 Data인지
                     if (routine.IsCheckInDay(day.Date))

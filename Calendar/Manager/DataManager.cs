@@ -65,19 +65,6 @@ namespace Calendar.Manager
             return false;
         }
 
-        public async Task<bool> ReplaceRoutineData(RoutineData existingData, RoutineData newData)
-        {
-            try
-            {
-                await DeleteAndAdd_AsyncSave(existingData, newData);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
         public TodoStorage GetTodoStorage()
         {
             return _currentStorage;
@@ -270,71 +257,52 @@ namespace Calendar.Manager
         /// </summary>
         private async Task AddOrUpdateData_AsyncSave(BaseTodoData data)
         {
-            switch (data)
-            {
-                // data와 동일한 Id가 존재하면 Update 없으면 Add
-                case ScheduleData schedule:
-                    ScheduleData? targetS = _currentStorage.Schedules.FirstOrDefault(x => x.Id == schedule.Id);
-                    if (targetS != null)
-                    {
-                        int index = _currentStorage.Schedules.IndexOf(targetS);
-                        _currentStorage.Schedules[index] = schedule;
-                    }
-                    else
-                        _currentStorage.Schedules.Add(schedule);
-                    break;
-                case RoutineData routine:
-                    RoutineData? targetR = _currentStorage.Routines.FirstOrDefault(x => x.Id == routine.Id);
-                    if (targetR != null)
-                    {
-                        int index = _currentStorage.Routines.IndexOf(targetR);
-                        _currentStorage.Routines[index] = routine;
-                        ClearGarbageRecords(routine);
-                    }
-                    else
-                        _currentStorage.Routines.Add(routine);
-                    break;
-                case RoutineRecord routineRecord:
-                    RoutineRecord? targetRR = _currentStorage.RoutineRecords.FirstOrDefault(x => x.Id == routineRecord.Id);
-                    if (targetRR != null)
-                    {
-                        int index = _currentStorage.RoutineRecords.IndexOf(targetRR);
-                        _currentStorage.RoutineRecords[index] = routineRecord;
-                    }
-                    else
-                        _currentStorage.RoutineRecords.Add(routineRecord);
-                    break;
-                default:
-                    return;
-            }
+            // 원본 객체가 존재하면 삭제
+            DeleteDataInCurrentStorage(data);
+
+            // 데이터 추가
+            if (data is ScheduleData s) _currentStorage.Schedules.Add(s);
+            else if (data is RoutineData r) _currentStorage.Routines.Add(r);
+            else if (data is RoutineRecord rr) _currentStorage.RoutineRecords.Add(rr);
             await SaveTodoDataAsync();
         }
         #endregion
         #region Data 제거
         /// <summary>
+        /// 전달받은 데이터의 데이터 형식에 따라 저장소에서 데이터 삭제
+        /// </summary>
+        private bool DeleteDataInCurrentStorage(BaseTodoData data)
+        {
+            var original = _currentStorage.FindOriginal(data);
+            if (original == null) return false;
+
+            return original switch
+            {
+                ScheduleData s => _currentStorage.Schedules.Remove(s),
+                RoutineData r => RemoveRoutineWithGarbageRecords(r),
+                RoutineRecord rr => _currentStorage.RoutineRecords.Remove(rr),
+                _ => false
+            };
+        }
+
+        /// <summary>
+        /// 저장소에서 RoutineData 제거하고 RoutineRecords까지 정리
+        /// </summary>
+        private bool RemoveRoutineWithGarbageRecords(RoutineData routine)
+        {
+            _currentStorage.ClearGarbageRecords(routine);
+            return _currentStorage.Routines.Remove(routine);
+        }
+
+        /// <summary>
         /// 데이터를 제거하고 저장
         /// </summary>
         private async Task DeleteData_AsyncSave(BaseTodoData data)
         {
-            bool isDeleted = false;
-
-            switch (data)
+            if(DeleteDataInCurrentStorage(data))
             {
-                case ScheduleData schedule:
-                    isDeleted = _currentStorage.Schedules.Remove(schedule);
-                    break;
-                case RoutineData routine:
-                    ClearGarbageRecords(routine);
-                    isDeleted = _currentStorage.Routines.Remove(routine);
-                    break;
-                case RoutineRecord routineRecord:
-                    isDeleted = _currentStorage.RoutineRecords.Remove(routineRecord);
-                    break;
-            }
-            ;
-
-            if (isDeleted)
                 await SaveTodoDataAsync();
+            }
         }
 
         /// <summary>
@@ -343,57 +311,47 @@ namespace Calendar.Manager
         private async Task DeleteData_AsyncSave(IEnumerable<BaseTodoData> datas)
         {
             bool isDeleted = false;
-            foreach (var data in datas)
+            foreach (var data in datas.ToList()) // 리스트 복사해서 순회
             {
-                bool deleted = false;
-                switch (data)
-                {
-                    case ScheduleData schedule:
-                        deleted = _currentStorage.Schedules.Remove(schedule);
-                        break;
-                    case RoutineData routine:
-                        ClearGarbageRecords(routine);
-                        deleted = _currentStorage.Routines.Remove(routine);
-                        break;
-                    case RoutineRecord routineRecord:
-                        deleted = _currentStorage.RoutineRecords.Remove(routineRecord);
-                        break;
-                }
-                ;
-                if (deleted) isDeleted = true;
+                if (DeleteDataInCurrentStorage(data))
+                    isDeleted = true;
             }
 
             if (isDeleted)
                 await SaveTodoDataAsync();
         }
-
-        /// <summary>
-        /// 규칙에 변경 사항이 생겼을때 필요없는 RoutineRecords 제거
-        /// </summary>
-        private void ClearGarbageRecords(RoutineData routineData)
-        {
-            // RoutineData의 Id와 똑같고, Status가 Waiting인 RoutineRecords를 한곳에 모음
-            List<RoutineRecord> unusedRecords = _currentStorage.RoutineRecords
-                                                                .Where(r => r.ParentRoutineId == routineData.Id && r.Status == TodoStatus.Waiting).ToList();
-
-            // 모아둔 RoutineRecords를 저장소에서 제거
-            foreach (RoutineRecord record in unusedRecords)
-            {
-                _currentStorage.RoutineRecords.Remove(record);
-            }
-        }
         #endregion
         /// <summary>
-        /// RoutineData 저장소에서 data1은 제거, data2는 추가하는 메서드
+        /// 임시로 만들어둔 메서드임 수정해야함
+        /// 넘겨받은 existingData는 어제부로 종료시키고 newData는 저장소에 저장한다.<br/>
+        /// 하지만 newData의 입력된 값중 EndDate가 오늘 이전이면 return한다.(생성 취소)<para/>
+        /// true - 기존 데이터 제거하고 새로운 루틴 생성 성공<br/>
+        /// false - EndDate가 오늘 이전이라 데이터 제거와 루틴 생성 모두 실패
         /// </summary>
-        private async Task DeleteAndAdd_AsyncSave(RoutineData data1, RoutineData data2)
+        /// <param name="setFailure">true: Status를 Failure로 변경, false: Status를 Waiting으로 설정</param>
+        public bool TempEditRoutineAndRegister(RoutineData existingData, RoutineData newData)
         {
-            bool result = _currentStorage.Routines.Remove(data1);
-
-            if (result)
+            // newData의 EndDate가 오늘 날짜 이전이면 차단(false 반환)
+            if (!newData.IsIndefinite && newData.EndDate < DateTime.Today)
             {
-                _currentStorage.Routines.Add(data2);
-                await SaveTodoDataAsync();
+                return false;
+            }
+            // 기존 데이터 처리
+            _currentStorage.FinishedOrRemoveRoutineData(existingData);
+            // 새로운 데이터 처리
+            _currentStorage.AddRoutineWithPastRecords(newData, false);
+            return true;
+        }
+        public bool TempAddNewRoutine(RoutineData routineData)
+        {
+            try
+            {
+                _currentStorage.AddRoutineWithPastRecords(routineData, true);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
             }
         }
         #endregion

@@ -62,7 +62,8 @@
 
             <!-- 주기별 오른쪽 화면 전환 -->
             <Border Grid.Column="1" Padding="5">
-                <ContentControl Content="{Binding CurrentRoutineVM}"> <!-- CurrentRoutineVM에따라 ViewModel도 변경됨 -->
+                <!-- CurrentRoutineVM에따라 ViewModel도 변경됨 -->
+                <ContentControl Content="{Binding CurrentRoutineVM}"> 
                     <ContentControl.Resources>
                         <DataTemplate DataType="{x:Type vmRoutine:DailyRoutineViewModel}">
                             <TextBlock Text="일간 반복은 추가 설정이 없습니다." Style="{StaticResource DailyRoutineTextBlock}"/>

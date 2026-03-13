@@ -1,7 +1,8 @@
 ﻿<!-- 규칙 추가 Window에서 주간 RadioButton 클릭하면 오른쪽 공간에 구성되는 View -->
 <UserControl x:Class="Calendar.View.TodoWindow.Routine.WeeklyRoutineView"
                    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                   VerticalAlignment="Top">
   
     <Border Padding="5">
         <ItemsControl ItemsSource="{Binding DayOptions}">

@@ -3,7 +3,6 @@
  */
 using Calendar.Common.Commands;
 using Calendar.Common.Interface;
-using Calendar.Manager;
 using Calendar.Model.DataClass.TodoEntities;
 using Calendar.Model.Enum;
 using Calendar.ViewModel.Base;
@@ -152,7 +151,7 @@ namespace Calendar.ViewModel.TodoWindow
         /// </summary>
         protected virtual void DeleteExecute(object? obj) { }
         /// <summary>
-        /// 필수 데이터가 입력됐는지 검사
+        /// 필수 데이터(제목, Routine의 경우엔 오른쪽 반복 날짜 선택까지)가 입력됐는지 검사
         /// </summary>
         protected virtual bool CheckRequiredData()
         {
@@ -256,28 +255,6 @@ namespace Calendar.ViewModel.TodoWindow
                 }
             }
             return routineData;
-        }
-        /// <summary>
-        /// Routine을 새로 추가했을때 시작 날짜 ~ 어제 사이의 RoutineRecord를 생성하여 TodoStorage에 저장해주는 메서드
-        /// </summary>
-        protected void GeneratePastRecords(RoutineData routineData)
-        {
-            DateTime startDate = routineData.StartDate.Date;
-            DateTime yesterday = DateTime.Today.AddDays(-1);
-
-            // 규칙의 시작일이 오늘 이후면 return
-            if (startDate > yesterday) return;
-
-            // 시작 날짜부터 어제까지 하루씩 증가하며 검사
-            for(DateTime date = startDate; date <= yesterday; date = date.AddDays(1))
-            {
-                // 해당 날짜가 규칙에 해당되지않으면 건너뛰기
-                if (!routineData.IsCheckInDay(date)) continue;
-
-                RoutineRecord record = new RoutineRecord(routineData, date);
-                record.Status = TodoStatus.Failure; // 이미 지난날이므로 바로 실패 처리
-                TodoRepository.GetTodoStorage().RoutineRecords.Add(record);
-            }
         }
         /// <summary>
         /// 주기에 맞게 ComboBox의 접미사 업데이트 (추가하려면 반복문의 i 최대값만 바꾸면됨)

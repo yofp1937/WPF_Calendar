@@ -3,7 +3,7 @@
 
 
 # 개발 기간
-- 2025.12.01 ~ 26.03.07 (ver 1.0 - 기본 기능 구현 완료)
+2025.12.01 ~ 26.03.07 (ver 1.0 - 기본 기능 구현 완료)
 
 
 # 사용 기술
@@ -119,7 +119,7 @@ https://github.com/user-attachments/assets/b89b817f-09d5-47d6-ac11-f1df0a4c0d08
   
   [원인] WPF의 ItemControls 렌더링 생명주기상 MultiDataTrigger의 적용 시점이 AlternationCount를 부여하는 단계보다 빠르기 때문에 초기 로드시 AlternationIndex값을 정상적으로 참조하지 못하는것을 확인
 
-  [해결] MultiDataTrigger는 부모 요소의 속성 변화를 제대로 감지하지 못하기에 동일 계층의 Grid.Tag를 중간 매개체로 활용해 Grid.Tag에 AlternationIndex값을 바인딩하여 값의 변화를 MultiDataTrigger가 즉시 감지할수있도록 우회
+  [해결] MultiDataTrigger는 부모 요소의 속성 변화를 제대로 감지하지 못하기에 동일 계층의 Grid.Tag를 중간 매개체로 활용해 Grid.Tag에 AlternationCount값을 바인딩하여 값의 변화를 MultiDataTrigger가 즉시 감지할수있도록 우회
   
  ### ② 파일 미종료로 인한 Json 저장 실패 (/Common/Util/FileHelper.cs)
   [문제] FileHelper에서 데이터를 Json 형식으로 저장하려했는데, 기존 Json 데이터만 남아있고 변경 사항이 반영되지 않음

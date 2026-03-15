@@ -12,9 +12,7 @@ namespace Calendar.Model.DataClass
     public class TodoStorage : ITodoStorage
     {
         #region Property
-        // data를 저장하는 각각의 List들은 readonly로 선언하여 한번 생성되면 바뀌지않게 설정
         // 외부에서 TodoStorage를 참조해야할때(ex: ListWindowViewModel) 외부에선 값을 변경할수없게 public IReadOnlyList를 사용
-        // IReadOnlyList는 Json으로 저장할 필요가 없기때문에 [JsonIgnore] 부착
         [JsonInclude]
         private List<ScheduleData> _scheduleDatas = new();
         [JsonInclude]
@@ -24,6 +22,7 @@ namespace Calendar.Model.DataClass
         [JsonInclude]
         private DateTime _lastUpdated = DateTime.Today.Date;
 
+        // IReadOnlyList는 Json으로 저장할 필요가 없기때문에 [JsonIgnore] 부착
         [JsonIgnore]
         public IReadOnlyList<ScheduleData> ScheduleDatas => _scheduleDatas;
         [JsonIgnore]
@@ -39,7 +38,7 @@ namespace Calendar.Model.DataClass
         public void CheckLastUpdated()
         {
             DateTime today = DateTime.Today;
-            if( today > _lastUpdated )
+            if( today > _lastUpdated)
             {
                 ChangeStatusOfData();
             }
@@ -99,6 +98,8 @@ namespace Calendar.Model.DataClass
             {
                 record.Status = TodoStatus.Failure;
             }
+
+            _lastUpdated = today;
         }
         #region Data 검색
         /// <summary>

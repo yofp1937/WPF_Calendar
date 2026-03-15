@@ -228,9 +228,10 @@ namespace Calendar.Manager
                     string tempPath = Path.Combine(folderPath, TodoFileName + ".tmp");
                     try
                     {
-                        // 데이터 저장중 프로그램이 종료되면 파일이 깨질 위험 존재하므로
-                        // 임시 파일에 우선 저장
-                        FileHelper.SaveJson(tempPath, _currentStorage);
+                        // 데이터 저장중 프로그램이 종료되면 파일이 깨질 위험 존재하므로 임시 파일에 우선 저장
+                        // _currentStorage를 저장하면 Interface 기반으로 저장돼서 형변환하여 저장해야함
+                        if(_currentStorage is TodoStorage storage)
+                            FileHelper.SaveJson(tempPath, storage);
 
                         // 임시 파일과 원본 파일이 존재하면 원본 삭제
                         if (File.Exists(tempPath) && File.Exists(filePath))

@@ -4,6 +4,7 @@
  */
 using Calendar.Common.Interface;
 using Calendar.Model.Enum;
+using System.Text.Json.Serialization;
 
 namespace Calendar.Model.DataClass.TodoEntities
 {
@@ -16,11 +17,11 @@ namespace Calendar.Model.DataClass.TodoEntities
             set => SetProperty(ref _status, value);
         }
 
-        [System.Text.Json.Serialization.JsonIgnore]
+        [JsonIgnore]
         public bool IsWaiting => Status == TodoStatus.Waiting;
-        [System.Text.Json.Serialization.JsonIgnore]
+        [JsonIgnore]
         public bool IsCompletion => Status == TodoStatus.Completion;
-        [System.Text.Json.Serialization.JsonIgnore]
+        [JsonIgnore]
         public bool IsFailure => Status == TodoStatus.Failure;
 
         protected BaseTodoDataWithStatus() { }

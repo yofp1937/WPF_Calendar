@@ -43,20 +43,37 @@ C#, WPF, MVVM, JSON Serialization
 
 ## 달력
 
+ #### ① 달력 생성 데이터 흐름도 (CalendarViewModel)
+ <img width="4204" height="2848" alt="Image" src="https://github.com/user-attachments/assets/d1b42554-6bda-446e-9e14-1cbe6e8e81a8" />
+ 
+ - 달력의 연도가 바뀌면 HolidayProvider로 해당 연도의 공휴일을 생성
+ - 달력을 그릴때마다 우선적으로 첫주 ~ 마지막주까지 날짜를 생성 날짜는 CalendarDayModel이라는 Class로 구현해서 정보(날짜, 휴일 여부, 해당 날짜의 일정 등)를 저장
+ - **날짜 생성 이후 날짜마다 표시해야할 일정, 규칙이 있는지 확인하고 등록**
+
+ #### ② 달력 기능
 https://github.com/user-attachments/assets/4d35c900-419c-4bdc-8624-c8832831fd04
 
- ### ① 달력 기능
- - 달력의 날짜를 채울때 날짜 하나마다 CalendarDayModel이라는 DataClass를 생성해서 정보(날짜, 요일, 휴일 여부, 선택 상태, 해당 날짜의 일정 등)를 저장
- - 달력의 달이 바뀌면 CalendarDayModel들을 전부 교체하고 데이터 저장소에 접근해서 표시해야할 Schedule과 Routine이 있는지 확인하여 적용함
  - 달력의 날짜를 클릭하면 해당 날짜의 일정이 왼쪽 패널에 표시되고 체크박스로 완료 여부를 변경할 수 있음
  - 체크박스를 체크하여 데이터의 상태(완료, 실패, 대기)를 변경하면 즉시 저장하지 않고 3초동안 입력이 없을때 저장함(값을 연속해서 바꾸면 마지막에 한번만 저장)
  - 한 날짜의 일정, 규칙 갯수가 7개를 넘어가면 맨 아래 표시되는 일정 텍스트가 ...(+n)으로 변경됨
+ 
+ #### ③ 달력의 주요 Item ViewModel인 CalendarDayModel 데이터 흐름도
+ <img width="3564" height="1724" alt="Image" src="https://github.com/user-attachments/assets/81073291-443d-43a5-b3f3-479d06c499f8" />
+ 
+ - CalendarDayModel은 달력의 날짜 하루당 하나씩 생성함
+ - CalendarViewModel에서 CalendarDayModel이 생성되면 생성자에서 날짜, 요일, 휴일 여부 등 기본적인 데이터를 자동으로 설정함
+ - SidePanelTasksView에서 선택된 날짜의 일정, 규칙을 표시하기위해 CalendarDayModel의 AllTasksView를 Binding
+ - **생성자에서 일정, 규칙 List에 Data가 추가될 경우 자동으로 AllTasksView 정렬시키고 OnPropertyChanged를 호출해 UI에도 갱신되게 이벤트 등록**
+ - 외부에서 AllTasksView에 접근하면 반환해주는데, 최초 접근일경우 정렬 설정을 적용하여 Instance를 생성하고 반환함
 
- ### ② 음력 공휴일과 임시 공휴일 적용
+ #### ④ 특정 연도의 공휴일을 계산하는 HolidayProvider 데이터 흐름도
+ <img width="4248" height="2848" alt="Image" src="https://github.com/user-attachments/assets/1103b793-af6d-47ea-8ef3-b1117b06856d" />
+ 
  - 음력 공휴일은 .NET 프레임워크에 내장된 KoreanLunisolarCalendar 클래스를 활용해 구현
- - 달력의 연도가 바뀌면 HolidayProvider에서 해당 연도의 공휴일과 임시 공휴일을 계산하여 가지고있고, CalendarDayModel이 생성될때마다 HolidayProvider를 통해 오늘이 휴일인지 확인하여 휴일을 표시함
+ - 달력의 연도가 바뀌면 HolidayProvider에서 해당 연도의 공휴일과 임시 공휴일을 계산하여 가지고있고,<br/>
+ CalendarDayModel에서 접근해 자신이 휴일인지 확인함
 
-## 일정, 규칙(반복 일정)
+### 일정, 규칙(반복 일정)
   - 프로그램 실행 시 저장소의 LastUpdate가 오늘 이전의 날짜로 저장돼있으면 오늘 이전 날짜들의 일정, 규칙 Status(상태) 값을 Failure(실패)로 변경함
  #### ① 일정
   - ScheduleData라는 DataClass로 관리하고 세부적으론 일정의 제목, 내용, 날짜 정보를 관리함

@@ -288,16 +288,22 @@ namespace Calendar.Common.Service
 
             if (obj is ScheduleData schedule)
             {
+                Debug.WriteLine("schedule");
                 editVM = new EditTodoViewModel(todoRepository, schedule);
             }
             else if (obj is RoutineData routineData)
             {
+                Debug.WriteLine("rd");
                 editVM = new EditTodoViewModel(todoRepository, routineData);
             }
-            // RoutineInstance는 RoutineRecord를 상속받기때문에 여기서 실행
             else if (obj is RoutineRecord routineRecord)
             {
+                Debug.WriteLine("rr");
                 editVM = new EditTodoViewModel(todoRepository, routineRecord);
+            }
+            else if (obj is RoutineInstance routineInstance)
+            {
+                editVM = new EditTodoViewModel(todoRepository, routineInstance);
             }
 
             return editVM != null ? ShowDialog(editVM) : false;

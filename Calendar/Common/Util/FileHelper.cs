@@ -90,10 +90,8 @@ namespace Calendar.Common.Util
             {
                 // FileShare.ReadWrite를 사용해 다른 곳에서 임시 파일을 원본으로 바꾸는 중이라도 안전하게 읽게함
                 using (FileStream fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                using (StreamReader sr = new StreamReader(fs))
                 {
-                    string jsonString = sr.ReadToEnd();
-                    return JsonSerializer.Deserialize<T>(jsonString);
+                    return JsonSerializer.Deserialize<T>(fs, JsonOptions);
                 }
             }
             catch (Exception ex)
